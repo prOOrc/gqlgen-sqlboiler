@@ -754,7 +754,7 @@ func fieldsWithout(fields []*SchemaField, skipFieldNames []string) []*SchemaFiel
 	var filteredFields []*SchemaField
 	for _, field := range fields {
 		if !sliceContains(skipFieldNames, field.Name) {
-			filteredFields = append(filteredFields, field)q
+			filteredFields = append(filteredFields, field)
 		}
 	}
 	return filteredFields
