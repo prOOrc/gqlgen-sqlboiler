@@ -743,7 +743,7 @@ func toGraphQLType(boilerField *BoilerField) string {
 	// I like to use unix here
 	// make sure TimeUnixFilter keeps working
 	if strings.Contains(lowerBoilerType, "time") {
-		return "Int"
+		return "Time"
 	}
 
 	// e.g. null.JSON let user define how it looks with their own struct
@@ -754,7 +754,7 @@ func fieldsWithout(fields []*SchemaField, skipFieldNames []string) []*SchemaFiel
 	var filteredFields []*SchemaField
 	for _, field := range fields {
 		if !sliceContains(skipFieldNames, field.Name) {
-			filteredFields = append(filteredFields, field)
+			filteredFields = append(filteredFields, field)q
 		}
 	}
 	return filteredFields
