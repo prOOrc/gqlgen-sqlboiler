@@ -22,6 +22,7 @@ const (
 type SchemaConfig struct {
 	BoilerModelDirectory Config
 	Directives           []string
+	NodeDirectives       []string
 	SkipInputFields      []string
 	GenerateBatchCreate  bool
 	GenerateMutations    bool
@@ -39,9 +40,13 @@ type SchemaGenerateConfig struct {
 }
 
 type SchemaModel struct {
-	Name   string
-	IsView bool
-	Fields []*SchemaField
+	Name             string
+	IsView           bool
+	Fields           []*SchemaField
+	QueryDirectives  []string
+	CreateDirectives []string
+	UpdateDirectives []string
+	DeleteDirectives []string
 }
 
 type SchemaField struct {
@@ -152,8 +157,6 @@ func SchemaGet(
 		w.l(fmt.Sprintf("directive @%v on FIELD_DEFINITION", defaultDirective))
 	}
 	w.br()
-
-	joinedDirectives := strings.Join(fullDirectives, " ")
 
 	w.l(`schema {`)
 	w.tl(`query: Query`)
@@ -326,11 +329,13 @@ func SchemaGet(
 	}
 
 	w.l("type Query {")
-	w.tl("node(id: ID!): Node" + joinedDirectives)
+	nodeDirectives := getDirectivesAsString(config.NodeDirectives)
+	w.tl("node(id: ID!): Node" + nodeDirectives)
 
 	for _, model := range models {
 		// single models
-		w.tl(strcase.ToLowerCamel(model.Name) + "(id: ID!): " + model.Name + "!" + joinedDirectives)
+		directives := getDirectivesAsString(model.QueryDirectives)
+		w.tl(strcase.ToLowerCamel(model.Name) + "(id: ID!): " + model.Name + "!" + directives)
 
 		// lists
 		modelPluralName := Plural(model.Name)
@@ -343,7 +348,7 @@ func SchemaGet(
 		}
 		w.tl(
 			strcase.ToLowerCamel(modelPluralName) + "(" + strings.Join(arguments, ", ") + "): " +
-				model.Name + "Connection!" + joinedDirectives)
+				model.Name + "Connection!" + directives)
 	}
 	w.l("}")
 
@@ -495,40 +500,41 @@ func SchemaGet(
 				continue
 			}
 			modelPluralName := Plural(model.Name)
-
+			createDirectives := getDirectivesAsString(model.CreateDirectives)
 			// create single
 			// e.g createUser(input: UserInput!): UserPayload!
 			w.tl("create" + model.Name + "(input: " + model.Name + "CreateInput!): " +
-				model.Name + "Payload!" + joinedDirectives)
+				model.Name + "Payload!" + createDirectives)
 
 			// create multiple
 			// e.g createUsers(input: [UsersInput!]!): UsersPayload!
 			if config.GenerateBatchCreate {
 				w.tl("create" + modelPluralName + "(input: " + modelPluralName + "CreateInput!): " +
-					modelPluralName + "Payload!" + joinedDirectives)
+					modelPluralName + "Payload!" + createDirectives)
 			}
-
+			updateDirectives := getDirectivesAsString(model.UpdateDirectives)
 			// update single
 			// e.g updateUser(id: ID!, input: UserInput!): UserPayload!
 			w.tl("update" + model.Name + "(id: ID!, input: " + model.Name + "UpdateInput!): " +
-				model.Name + "Payload!" + joinedDirectives)
+				model.Name + "Payload!" + updateDirectives)
 
 			// update multiple (batch update)
 			// e.g updateUsers(filter: UserFilter, input: UsersInput!): UsersPayload!
 			if config.GenerateBatchUpdate {
 				w.tl("update" + modelPluralName + "(filter: " + model.Name + "Filter, input: " +
-					model.Name + "UpdateInput!): " + modelPluralName + "UpdatePayload!" + joinedDirectives)
+					model.Name + "UpdateInput!): " + modelPluralName + "UpdatePayload!" + updateDirectives)
 			}
-
+			
+			deleteDirectives := getDirectivesAsString(model.DeleteDirectives)
 			// delete single
 			// e.g deleteUser(id: ID!): UserPayload!
-			w.tl("delete" + model.Name + "(id: ID!): " + model.Name + "DeletePayload!" + joinedDirectives)
+			w.tl("delete" + model.Name + "(id: ID!): " + model.Name + "DeletePayload!" + deleteDirectives)
 
 			// delete multiple
 			// e.g deleteUsers(filter: UserFilter, input: [UsersInput!]!): UsersPayload!
 			if config.GenerateBatchDelete {
 				w.tl("delete" + modelPluralName + "(filter: " + model.Name + "Filter): " +
-					modelPluralName + "DeletePayload!" + joinedDirectives)
+					modelPluralName + "DeletePayload!" + deleteDirectives)
 			}
 		}
 		w.l("}")

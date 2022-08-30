@@ -51,15 +51,6 @@ import (
 					key, value := boilergql.FromCursorValue(cursorValue)
 					column := {{ $model.BoilerModel.Name }}SortColumn[{{ $.Frontend.PackageName }}.{{ $model.BoilerModel.Name }}Sort(key)]
 
-
-					{{ range $value := $field.Enum.Values}}
-						{{- if eq $value.Name "ID" -}}
-						if {{ $.Frontend.PackageName }}.{{ $field.Enum.Name|go }}(key) == {{ $.Frontend.PackageName }}.{{ $field.Enum.Name|go }}{{ .Name|go }} {
-							return column, boilergql.GetIDFromCursor(value)
-						}
-						{{- end -}}
-					{{ end }}
-
 					return column, boilergql.StringToInterface(value)
 				}
 
@@ -202,8 +193,6 @@ import (
 
 			var mods []qm.QueryMod
 			mods = append(mods, {{ .BoilerModel.Name }}CursorMods(ordering, cursor, sign)...)
-			mods = append(mods, {{ .BoilerModel.Name }}SortMods(ordering, reverse, direction)...)
-			mods = append(mods, qm.Limit(limit))
 			return cursor, mods
 		}
 
@@ -218,6 +207,9 @@ import (
 			reverse := pagination.Backward != nil
 			limit := boilergql.GetLimit(pagination.Forward, pagination.Backward)
 			_, mods := {{ .BoilerModel.Name }}PaginationModsBase(pagination, ordering, reverse, limit)
+			direction := {{ .BoilerModel.Name }}SortDirection(ordering)
+			mods = append(mods, {{ .BoilerModel.Name }}SortMods(ordering, reverse, direction)...)
+			mods = append(mods, qm.Limit(limit))
 			return mods, nil
 		}
 
